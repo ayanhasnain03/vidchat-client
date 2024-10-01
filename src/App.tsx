@@ -133,7 +133,7 @@ const App: React.FC = () => {
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
-  const socket = useSocket("http://localhost:5000"); // Replace with your backend URL
+  const socket = useSocket("https://vidchat-backend.onrender.com"); // Replace with your backend URL
   const { localStream, videoRef } = useMedia();
 
   useEffect(() => {
