@@ -6,7 +6,7 @@ const useSocket = (url: string) => {
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
-    socketRef.current = io(url);
+    socketRef.current = io(url, { transports: ["websocket", "polling"] }); // Use both WebSocket and polling
     return () => {
       socketRef.current.disconnect();
     };
@@ -99,41 +99,19 @@ const Video: React.FC<{
   </div>
 );
 
-// ScreenShare Component
-const ScreenShare: React.FC<{
-  screenVideoRef: React.RefObject<HTMLVideoElement>;
-  stopScreenShare: () => void;
-}> = ({ screenVideoRef, stopScreenShare }) => (
-  <div className="flex flex-col items-center w-full h-full">
-    <video
-      ref={screenVideoRef}
-      autoPlay
-      className="border rounded-lg shadow-md w-full h-full object-cover"
-    />
-    <button
-      onClick={stopScreenShare}
-      className="mt-2 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition"
-    >
-      Stop Screen Share
-    </button>
-  </div>
-);
-
 // Main App Component
 const App: React.FC = () => {
   const [roomId, setRoomId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<string[]>([]);
-  const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const screenVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
-  const socket = useSocket(import.meta.env.VITE_REACT_SERVER_URL);
+  const socket = useSocket(import.meta.env.VITE_REACT_SERVER_URL as string);
   const { localStream, videoRef } = useMedia();
 
   useEffect(() => {
@@ -230,103 +208,44 @@ const App: React.FC = () => {
 
   const sendMessage = (msg: string) => {
     if (msg) {
-      socket.emit("send-message", `${userId}: ${msg}`);
-      setMessages((prev) => [...prev, `${userId}: ${msg}`]);
+      socket.emit("send-message", msg);
+      setMessages((prev) => [...prev, `Me: ${msg}`]);
     }
-  };
-
-  const startScreenShare = async () => {
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
-      if (peerConnectionRef.current) {
-        screenStream.getTracks().forEach((track) => {
-          peerConnectionRef.current?.addTrack(track, screenStream);
-        });
-        screenVideoRef.current!.srcObject = screenStream;
-        setIsScreenSharing(true);
-      }
-    } catch (error) {
-      console.error("Error sharing screen:", error);
-      setError("Failed to share the screen. Please try again.");
-    }
-  };
-
-  const stopScreenShare = () => {
-    const tracks = screenVideoRef.current?.srcObject
-      ? (screenVideoRef.current.srcObject as MediaStream).getTracks()
-      : [];
-    tracks.forEach((track) => track.stop());
-    screenVideoRef.current!.srcObject = null;
-    setIsScreenSharing(false);
-  };
-
-  const disconnect = () => {
-    peerConnectionRef.current?.close();
-    socket.emit("disconnect");
   };
 
   return (
-    <div className="flex flex-col items-center h-screen">
+    <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Video Call App</h1>
-
-      {loading && <div className="text-center">Joining room...</div>}
-      {error && <div className="text-red-500">{error}</div>}
-
-      {!isScreenSharing && (
-        <div className="flex w-full justify-center">
-          <Video videoRef={videoRef} title="You" muted />
-          <Video videoRef={remoteVideoRef} title="Remote" />
-        </div>
-      )}
-
-      {isScreenSharing && (
-        <ScreenShare
-          screenVideoRef={screenVideoRef}
-          stopScreenShare={stopScreenShare}
-        />
-      )}
-
-      <div className="flex justify-between w-full p-4">
+      {error && <p className="text-red-500">{error}</p>}
+      <div className="mb-4">
         <input
           type="text"
-          placeholder="Enter room ID"
+          placeholder="Room ID"
           value={roomId}
           onChange={(e) => setRoomId(e.target.value)}
-          className="border p-2 rounded mr-2 flex-grow"
+          className="border p-2 rounded mr-2"
         />
         <input
           type="text"
-          placeholder="Enter your name"
+          placeholder="Your Name"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
-          className="border p-2 rounded mr-2 flex-grow"
+          className="border p-2 rounded mr-2"
         />
         <button
           onClick={joinRoom}
-          className="bg-green-500 text-white p-2 rounded hover:bg-green-600 transition"
+          disabled={loading}
+          className={`p-2 rounded ${
+            loading ? "bg-gray-400" : "bg-blue-500 text-white"
+          }`}
         >
-          Join Room
+          {loading ? "Joining..." : "Join Room"}
         </button>
       </div>
-
-      <div className="flex w-full justify-center mt-4">
-        <button
-          onClick={startScreenShare}
-          className="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 transition"
-        >
-          Start Screen Share
-        </button>
-        <button
-          onClick={disconnect}
-          className="bg-red-500 text-white p-2 rounded hover:bg-red-600 transition ml-2"
-        >
-          Disconnect
-        </button>
+      <div className="flex">
+        <Video videoRef={videoRef} title="Your Video" muted />
+        <Video videoRef={remoteVideoRef} title="Remote Video" />
       </div>
-
       <Chat
         messages={messages}
         sendMessage={sendMessage}
