@@ -6,7 +6,7 @@ const useSocket = (url: string) => {
   const socketRef = useRef<any>(null);
 
   useEffect(() => {
-    socketRef.current = io(url, { transports: ["websocket", "polling"] }); // Use both WebSocket and polling
+    socketRef.current = io(url, { transports: ["websocket", "polling"] });
     return () => {
       socketRef.current.disconnect();
     };
@@ -31,7 +31,7 @@ const useMedia = () => {
         videoRef.current.srcObject = stream;
       }
     } catch (error) {
-      console.error("Error accessing media devices.", error);
+      console.error("Error accessing media devices:", error);
     }
   };
 
@@ -69,8 +69,10 @@ const Chat: React.FC<{
         />
         <button
           onClick={() => {
-            sendMessage(message);
-            setMessage(""); // Clear the input field after sending
+            if (message) {
+              sendMessage(message);
+              setMessage(""); // Clear the input field after sending
+            }
           }}
           className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
         >
@@ -111,15 +113,8 @@ const App: React.FC = () => {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
-  const socket = useSocket(
-    (import.meta.env.VITE_REACT_SERVER_URL as string) ||
-      "https://vidchat-backend.onrender.com"
-  );
-  console.log(
-    "Connecting to socket at:",
-    import.meta.env.VITE_REACT_SERVER_URL
-  );
-
+  // Use your deployed backend URL here
+  const socket = useSocket("https://vidchat-backend.onrender.com");
   const { localStream, videoRef } = useMedia();
 
   useEffect(() => {
@@ -149,6 +144,11 @@ const App: React.FC = () => {
     });
 
     return () => {
+      socket.off("user-connected");
+      socket.off("offer");
+      socket.off("answer");
+      socket.off("ice-candidate");
+      socket.off("receive-message");
       peerConnectionRef.current?.close();
     };
   }, [socket, localStream]);
