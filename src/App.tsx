@@ -111,7 +111,10 @@ const App: React.FC = () => {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
-  const socket = useSocket(import.meta.env.VITE_REACT_SERVER_URL as string);
+  const socket = useSocket(
+    (import.meta.env.VITE_REACT_SERVER_URL as string) ||
+      "https://vidchat-backend.onrender.com"
+  );
   const { localStream, videoRef } = useMedia();
 
   useEffect(() => {
