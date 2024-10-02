@@ -115,6 +115,11 @@ const App: React.FC = () => {
     (import.meta.env.VITE_REACT_SERVER_URL as string) ||
       "https://vidchat-backend.onrender.com"
   );
+  console.log(
+    "Connecting to socket at:",
+    import.meta.env.VITE_REACT_SERVER_URL
+  );
+
   const { localStream, videoRef } = useMedia();
 
   useEffect(() => {
