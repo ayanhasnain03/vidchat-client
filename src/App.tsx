@@ -31,7 +31,10 @@ const useMedia = () => {
         videoRef.current.srcObject = stream;
       }
     } catch (error) {
-      console.error("Error accessing media devices:", error);
+      console.error("Error accessing media devices.", error);
+      throw new Error(
+        "Unable to access media devices. Please check permissions."
+      );
     }
   };
 
@@ -69,10 +72,8 @@ const Chat: React.FC<{
         />
         <button
           onClick={() => {
-            if (message) {
-              sendMessage(message);
-              setMessage(""); // Clear the input field after sending
-            }
+            sendMessage(message);
+            setMessage("");
           }}
           className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
         >
@@ -113,14 +114,12 @@ const App: React.FC = () => {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
-  // Use your deployed backend URL here
   const socket = useSocket("https://vidchat-backend.onrender.com");
   const { localStream, videoRef } = useMedia();
 
   useEffect(() => {
     if (!socket) return;
 
-    // Socket event listeners
     socket.on("user-connected", (userId: string) => {
       console.log(`User connected: ${userId}`);
       if (localStream) {
@@ -250,7 +249,7 @@ const App: React.FC = () => {
           {loading ? "Joining..." : "Join Room"}
         </button>
       </div>
-      <div className="flex">
+      <div className="flex flex-col sm:flex-row">
         <Video videoRef={videoRef} title="Your Video" muted />
         <Video videoRef={remoteVideoRef} title="Remote Video" />
       </div>
